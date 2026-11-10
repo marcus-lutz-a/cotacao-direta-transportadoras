@@ -1,4 +1,4 @@
-# Cotação por Volumes para Total Express
+# Cotação por Volumes — Total Express e Braspress
 
 Plugin para WooCommerce que cota o frete da **Total Express** direto no
 webservice da transportadora, com o **contrato da própria loja**, sem
@@ -43,6 +43,41 @@ Este plugin:
 - **Migração da Frenet:** um botão adiciona o método a todas as áreas de entrega
   que já têm a Frenet, para comparar lado a lado antes de desativá-la.
 - Log de cada cálculo em WooCommerce → Status → Logs, origem `cvte-total-express`.
+
+## Braspress (desde a 0.3.0)
+
+Segundo método de entrega, independente da Total Express, com tela própria em
+**WooCommerce → Braspress**. Cota na **API REST oficial** da Braspress
+(`POST /v1/cotacao/calcular/json`, HTTP Basic) com o contrato da loja.
+
+| | Total Express | Braspress |
+|---|---|---|
+| Protocolo | SOAP/XML | REST/JSON |
+| Cotação | uma por volume | **uma por pedido** (lista de caixas em `cubagem`, em metros) |
+| Limite por volume | 30 kg | configurável (a Braspress não tem o teto de 30 kg) |
+| Depende do destinatário | não | **sim**: CPF (pessoa física) e CNPJ têm preços diferentes |
+| Validade da cotação | — | até 23:59 do dia (o cache respeita isso) |
+
+**CPF/CNPJ do destinatário.** O plugin procura o documento nos campos do
+checkout (configuráveis; o padrão cobre o *Brazilian Market on WooCommerce*) e
+no cadastro do cliente logado, e o coloca no pacote de entrega — assim o
+WooCommerce recota quando o cliente digita ou troca o documento. Sem documento
+(carrinho, página do produto), a Braspress fica oculta ou é estimada com um CPF
+de referência informado pelo lojista. O plugin nunca inventa um documento.
+
+**Exibição junto com a Total Express.** Com a Braspress visível, as opções são
+ordenadas da mais barata para a mais cara e, no modo "âncora", uma opção deste
+plugin que custe mais de N vezes a mais barata é escondida (padrão 3×). Opções
+de outros plugins nunca são escondidas. Nos modos `desligado` e `sombra` o
+checkout fica exatamente como antes.
+
+Credenciais pelo painel (senha criptografada) ou no `wp-config.php`:
+
+```php
+define('CVBP_USUARIO', 'usuario-da-api');
+define('CVBP_SENHA',   'senha-da-api');
+// opcional: define('CVBP_ENDPOINT', 'https://...');
+```
 
 ## Requisitos
 
@@ -116,7 +151,8 @@ devolvem números: são testados sem WordPress, sem banco e sem internet.
 ## Testes
 
 ```bash
-php tests/testes.php
+php tests/testes.php            # Total Express (60 verificações)
+php tests/testes-braspress.php  # Braspress (77 verificações)
 ```
 
 60 verificações: conversão monetária, leitura de respostas (sucesso, recusa,

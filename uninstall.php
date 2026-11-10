@@ -12,10 +12,15 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 delete_option('cvte_config');
 delete_option('cvte_cache_versao');
 delete_option('cvte_credenciais');
+delete_option('cvbp_config');
+delete_option('cvbp_cache_versao');
+delete_option('cvbp_credenciais');
 
 global $wpdb;
 $wpdb->query($wpdb->prepare(
-    "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+    "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s",
     $wpdb->esc_like('_transient_cvte_') . '%',
-    $wpdb->esc_like('_transient_timeout_cvte_') . '%'
+    $wpdb->esc_like('_transient_timeout_cvte_') . '%',
+    $wpdb->esc_like('_transient_cvbp_') . '%',
+    $wpdb->esc_like('_transient_timeout_cvbp_') . '%'
 ));

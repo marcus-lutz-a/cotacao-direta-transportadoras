@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 0.3.0 — 2026-11-10
+Braspress.
+
+- Novo método de entrega **Braspress**, cotando na API REST oficial (`/v1/cotacao/calcular/json`), com tela própria (WooCommerce → Braspress), credenciais criptografadas e ambientes de produção e homologação.
+- Uma cotação por pedido, com as caixas montadas pelo mesmo empacotador da Total Express (limite de peso por caixa configurável) e agrupadas em `cubagem` (metros).
+- CPF/CNPJ do destinatário lido do checkout ou do cadastro do cliente, validado pelos dígitos e colocado no pacote para forçar nova cotação quando muda; sem documento, a Braspress fica oculta ou usa um CPF de referência do lojista.
+- Cache que respeita a validade da cotação (até 23:59 do dia); erros 4xx não ficam em cache, 5xx ficam 5 minutos.
+- Exibição conjunta: mais barata primeiro e modos "sempre", "âncora" (esconde opção deste plugin acima de N× a mais barata) e "mais barata". Inativa nos modos desligado e sombra.
+- Mesmos modos de implantação (desligado, admin, sombra, ativo) e log próprio (`cvbp-braspress`).
+- 77 testes novos (`tests/testes-braspress.php`). Nenhuma classe da Total Express foi alterada.
+
 ## 0.2.0 — 2026-10-05
 Primeira versão pública.
 

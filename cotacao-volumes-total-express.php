@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       Cotação por Volumes para Total Express
- * Description:       Cota o frete da Total Express direto no webservice da transportadora, com o
- *                    contrato da própria loja, dividindo o pedido em volumes de até 30 kg.
- * Version:           0.2.0
+ * Plugin Name:       Cotação por Volumes — Total Express e Braspress
+ * Description:       Cota o frete da Total Express (webservice) e da Braspress (API REST) direto nas
+ *                    transportadoras, com o contrato da própria loja, dividindo o pedido em volumes.
+ * Version:           0.3.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Marcus Lutz
@@ -24,6 +24,17 @@
  *   includes/class-cvte-metodo.php       o método de entrega do WooCommerce
  *   includes/class-cvte-admin.php        a tela de configuração e de teste
  *
+ *   includes/braspress/                  a Braspress (desde a 0.3.0), prefixo CVBP_:
+ *     class-cvbp-config.php              regras, credenciais e preço ao cliente
+ *     class-cvbp-documento.php           CPF/CNPJ do destinatário (muda o preço)
+ *     class-cvbp-api.php                 conversa com a API REST (JSON)
+ *     class-cvbp-metodo.php              o método de entrega "Braspress"
+ *     class-cvbp-exibicao.php            ordem e âncora entre Total Express e Braspress
+ *     class-cvbp-admin.php               a tela WooCommerce → Braspress
+ *
+ * A parte da Total Express não depende da Braspress: as classes CVTE_ não
+ * foram alteradas. A Braspress reaproveita o empacotador e a criptografia.
+ *
  * Cada classe faz uma coisa só. Assim dá para testar o empacotador sem
  * internet, e trocar a API sem mexer no cálculo do preço.
  */
@@ -32,7 +43,7 @@ if (!defined('ABSPATH')) {
     exit; // Acesso direto ao arquivo pelo navegador: não faz nada.
 }
 
-define('CVTE_VERSAO', '0.2.0');
+define('CVTE_VERSAO', '0.3.0');
 define('CVTE_DIR', plugin_dir_path(__FILE__));
 
 /*
@@ -60,14 +71,31 @@ add_action('plugins_loaded', function () {
     require_once CVTE_DIR . 'includes/class-cvte-empacotador.php';
     require_once CVTE_DIR . 'includes/class-cvte-metodo.php';
 
-    // Registra o método na lista de "métodos de entrega" das áreas de entrega.
+    // Braspress
+    require_once CVTE_DIR . 'includes/braspress/class-cvbp-config.php';
+    require_once CVTE_DIR . 'includes/braspress/class-cvbp-documento.php';
+    require_once CVTE_DIR . 'includes/braspress/class-cvbp-api.php';
+    require_once CVTE_DIR . 'includes/braspress/class-cvbp-metodo.php';
+    require_once CVTE_DIR . 'includes/braspress/class-cvbp-exibicao.php';
+
+    // Registra os métodos na lista de "métodos de entrega" das áreas de entrega.
     add_filter('woocommerce_shipping_methods', function ($metodos) {
         $metodos['cvte_total_express'] = 'CVTE_Metodo';
+        $metodos['cvbp_braspress']     = 'CVBP_Metodo';
         return $metodos;
     });
 
+    // Braspress: o CPF/CNPJ entra no pacote (o WooCommerce recota quando ele muda)...
+    add_filter('woocommerce_cart_shipping_packages', [CVBP_Documento::class, 'no_pacote']);
+    // ...e sair do campo no checkout dispara a atualização do resumo.
+    add_action('wp_enqueue_scripts', [CVBP_Documento::class, 'script_checkout'], 20);
+    // Ordem das opções e âncora de preço entre Total Express e Braspress.
+    add_filter('woocommerce_package_rates', [CVBP_Exibicao::class, 'filtrar'], 100, 2);
+
     if (is_admin()) {
         require_once CVTE_DIR . 'includes/class-cvte-admin.php';
+        require_once CVTE_DIR . 'includes/braspress/class-cvbp-admin.php';
         CVTE_Admin::iniciar();
+        CVBP_Admin::iniciar();
     }
 }, 20);
