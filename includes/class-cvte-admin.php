@@ -41,7 +41,7 @@ class CVTE_Admin
     {
         add_submenu_page(
             'woocommerce',
-            'Cotação por Volumes para Total Express',
+            'Cotação Direta de Transportadoras — Total Express',
             'Total Express',
             'manage_woocommerce',
             self::PAGINA,
@@ -119,13 +119,15 @@ class CVTE_Admin
     {
         $cfg = CVTE_Config::obter();
         $cfg['cache_horas'] = 0;
-        if (!empty($d['t_servico'])) {
-            $cfg['servico'] = substr(strtoupper(preg_replace('/[^A-Za-z]/', '', (string) $d['t_servico'])), 0, 3);
+        // Só valores simples: um campo enviado como lista (t_cep[]=...) vira texto vazio.
+        $txt = static fn($k) => is_scalar($d[$k] ?? null) ? (string) $d[$k] : '';
+        if ($txt('t_servico') !== '') {
+            $cfg['servico'] = substr(strtoupper(preg_replace('/[^A-Za-z]/', '', $txt('t_servico'))), 0, 3);
         }
 
-        $num = static fn($k, $padrao) => is_numeric(str_replace(',', '.', $d[$k] ?? '')) ? (float) str_replace(',', '.', $d[$k]) : $padrao;
+        $num = static fn($k, $padrao) => is_numeric(str_replace(',', '.', $txt($k))) ? (float) str_replace(',', '.', $txt($k)) : $padrao;
         $entrada = [
-            'cep'   => preg_replace('/\D/', '', $d['t_cep'] ?? ''),
+            'cep'   => preg_replace('/\D/', '', $txt('t_cep')),
             'peso'  => $num('t_peso', 1.0),
             'valor' => $num('t_valor', 50.0),
             'dims'  => [$num('t_comp', 20), $num('t_larg', 16), $num('t_alt', 10)],
@@ -277,7 +279,7 @@ class CVTE_Admin
         };
         ?>
         <div class="wrap">
-            <h1>Cotação por Volumes para Total Express <small style="font-weight:400">v<?php echo esc_html(CVTE_VERSAO); ?></small></h1>
+            <h1>Total Express <small style="font-weight:400;color:#646970">· Cotação Direta de Transportadoras</small> <small style="font-weight:400">v<?php echo esc_html(CVTE_VERSAO); ?></small></h1>
 
             <?php if ($aviso) : $aviso = is_array($aviso) ? $aviso : ['texto' => (string) $aviso, 'tipo' => 'success']; ?>
                 <div class="notice notice-<?php echo $aviso['tipo'] === 'error' ? 'error' : 'success'; ?> is-dismissible"><p><?php echo esc_html($aviso['texto']); ?></p></div>

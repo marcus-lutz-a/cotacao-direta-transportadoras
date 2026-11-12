@@ -27,7 +27,7 @@ class CVBP_Admin
 
     public static function menu(): void
     {
-        add_submenu_page('woocommerce', 'Cotação Braspress', 'Braspress', 'manage_woocommerce', self::PAGINA, [self::class, 'renderizar']);
+        add_submenu_page('woocommerce', 'Cotação Direta de Transportadoras — Braspress', 'Braspress', 'manage_woocommerce', self::PAGINA, [self::class, 'renderizar']);
     }
 
     public static function processar(): void
@@ -94,11 +94,13 @@ class CVBP_Admin
     {
         $cfg = CVBP_Config::obter();
         $cfg['cache_horas'] = 0;
-        $num = static fn($k, $padrao) => is_numeric(str_replace(',', '.', (string) ($d[$k] ?? ''))) ? (float) str_replace(',', '.', (string) $d[$k]) : $padrao;
+        // Só valores simples: um campo enviado como lista vira texto vazio.
+        $txt = static fn($k) => is_scalar($d[$k] ?? null) ? (string) $d[$k] : '';
+        $num = static fn($k, $padrao) => is_numeric(str_replace(',', '.', $txt($k))) ? (float) str_replace(',', '.', $txt($k)) : $padrao;
 
         $entrada = [
-            'cep'   => CVBP_Documento::limpar((string) ($d['t_cep'] ?? '')),
-            'doc'   => CVBP_Documento::limpar((string) ($d['t_doc'] ?? '')),
+            'cep'   => CVBP_Documento::limpar($txt('t_cep')),
+            'doc'   => CVBP_Documento::limpar($txt('t_doc')),
             'peso'  => $num('t_peso', 10.0),
             'valor' => $num('t_valor', 150.0),
             'dims'  => [$num('t_comp', 40), $num('t_larg', 30), $num('t_alt', 20)],
@@ -176,7 +178,7 @@ class CVBP_Admin
         };
         ?>
         <div class="wrap">
-            <h1>Cotação Braspress <small style="font-weight:400">v<?php echo esc_html(CVTE_VERSAO); ?></small></h1>
+            <h1>Braspress <small style="font-weight:400;color:#646970">· Cotação Direta de Transportadoras</small> <small style="font-weight:400">v<?php echo esc_html(CVTE_VERSAO); ?></small></h1>
 
             <?php if ($aviso) : ?>
                 <div class="notice notice-<?php echo $aviso['tipo'] === 'error' ? 'error' : 'success'; ?> is-dismissible"><p><?php echo esc_html($aviso['texto']); ?></p></div>

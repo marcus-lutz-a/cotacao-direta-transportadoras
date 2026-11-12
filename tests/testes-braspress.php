@@ -149,6 +149,13 @@ $antes = $GLOBALS['chamadas_http'];
 $r = CVBP_API::cotar($envio_api, $cfg);
 verificar('2ª cotação igual vem do cache', $r['cache'] && $GLOBALS['chamadas_http'] === $antes, true);
 
+// Travas de segurança da conexão (checkup de segurança, 12/11/2026)
+verificar('não segue redirecionamentos (a senha não vai para outro endereço)', $GLOBALS['ultimo_envio']['redirection'], 0);
+verificar('certificado TLS sempre conferido', $GLOBALS['ultimo_envio']['sslverify'], true);
+verificar('tamanho da resposta limitado', $GLOBALS['ultimo_envio']['limit_response_size'], CVTE_API::LIMITE_RESPOSTA);
+verificar('o cache guarda o preço', in_array(141.84, array_column($GLOBALS['transients'], 'valor'), true), true);
+verificar('o cache não guarda o CPF/CNPJ do cliente (LGPD)', str_contains(json_encode($GLOBALS['transients']), CPF_EXEMPLO), false);
+
 $cfg_h = ['ambiente' => 'homologacao', 'cache_horas' => 0] + $cfg;
 CVBP_API::cotar($envio_api, $cfg_h);
 verificar('ambiente homologação usa o outro endereço', $GLOBALS['ultimo_url'], CVBP_Config::ENDPOINTS['homologacao']);
@@ -166,6 +173,13 @@ verificar('erro 400 (dado nosso) não fica em cache', count($GLOBALS['transients
 $GLOBALS['resposta_falsa'] = ['code' => 503, 'body' => 'fora do ar'];
 CVBP_API::cotar($envio_api, $cfg);
 verificar('erro 503 (deles) fica guardado 5 min', count($GLOBALS['transients']), 1);
+verificar('falha guardada também sem o CPF/CNPJ', str_contains(json_encode($GLOBALS['transients']), CPF_EXEMPLO), false);
+
+$GLOBALS['transients'] = [];
+$GLOBALS['resposta_falsa'] = ['code' => 302, 'body' => ''];
+$r = CVBP_API::cotar($envio_api, $cfg);
+verificar('redirecionamento (HTTP 302) vira erro claro', str_contains($r['erro'], 'redirecionamento'), true);
+verificar('redirecionamento não fica em cache', count($GLOBALS['transients']), 0);
 
 $antes = $GLOBALS['chamadas_http'];
 verificar('sem CNPJ do remetente: nem chama a API', CVBP_API::cotar(['cnpj_remetente' => ''] + $envio_api, $cfg)['ok'] || $GLOBALS['chamadas_http'] !== $antes, false);

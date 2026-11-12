@@ -1,23 +1,24 @@
 <?php
 /**
- * Plugin Name:       Cotação por Volumes — Total Express e Braspress
- * Description:       Cota o frete da Total Express (webservice) e da Braspress (API REST) direto nas
- *                    transportadoras, com o contrato da própria loja, dividindo o pedido em volumes.
+ * Plugin Name:       Cotação Direta de Transportadoras
+ * Description:       Cota o frete direto nas transportadoras, com o contrato da própria loja e sem
+ *                    intermediário (dispensa a Frenet): Total Express (webservice) e Braspress (API REST),
+ *                    dividindo o pedido em volumes.
  * Version:           0.3.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Marcus Lutz
- * Text Domain:       cotacao-volumes-total-express
+ * Text Domain:       cotacao-direta-transportadoras
  * License:           GPL-2.0-or-later
  *
  * WC requires at least: 8.0
  *
- * Projeto independente, sem vínculo com a Total Express.
+ * Projeto independente, sem vínculo com a Total Express, a Braspress ou a Frenet.
  *
  * ---------------------------------------------------------------------------
  * COMO O PLUGIN ESTÁ ORGANIZADO
  * ---------------------------------------------------------------------------
- *   cotacao-volumes-total-express.php    este arquivo: carrega as peças e registra o método
+ *   cotacao-direta-transportadoras.php   este arquivo: carrega as peças e registra o método
  *   includes/class-cvte-config.php       lê e valida as configurações
  *   includes/class-cvte-api.php          conversa com o webservice (SOAP)
  *   includes/class-cvte-empacotador.php  divide o carrinho em volumes

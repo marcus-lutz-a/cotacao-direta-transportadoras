@@ -101,11 +101,17 @@ class CVBP_API
                 : 'Credenciais não configuradas (WooCommerce → Braspress, ou CVBP_USUARIO / CVBP_SENHA no wp-config.php).');
         }
 
+        if (!CVTE_API::endpoint_seguro($cred['endpoint'])) {
+            return self::falha('O endereço da API precisa começar com https:// (confira CVBP_ENDPOINT no wp-config.php). A senha não foi enviada.');
+        }
+
         $corpo = self::montar_corpo($envio + ['modal' => $cfg['modal'], 'tipo_frete' => $cfg['tipo_frete']]);
         $json = wp_json_encode($corpo);
 
         // Cache: mesma pergunta, mesma resposta. Usuário e endpoint na chave para
-        // que trocar credencial ou ambiente invalide tudo.
+        // que trocar credencial ou ambiente invalide tudo. O que vai para o cache
+        // passa por CVTE_API::para_cache(): sem o JSON enviado, que tem o CPF/CNPJ
+        // do cliente (LGPD: o banco não guarda o documento por causa do frete).
         $versao = (int) get_option(self::OPCAO_VERSAO_CACHE, 1);
         $chave = 'cvbp_' . md5($json . '|' . $cred['usuario'] . '|' . $cred['endpoint'] . '|' . $versao);
         $ttl = CVBP_Config::segundos_de_cache($cfg, time(), self::meia_noite());
@@ -117,20 +123,18 @@ class CVBP_API
             }
         }
 
-        $resposta = wp_remote_post($cred['endpoint'], [
-            'timeout' => (int) $cfg['timeout'],
-            'headers' => [
-                'Content-Type'  => 'application/json',
-                'Accept'        => 'application/json',
-                'Authorization' => 'Basic ' . base64_encode($cred['usuario'] . ':' . $cred['senha']),
-            ],
-            'body'    => $json,
-        ]);
+        // Travas de segurança (sem redirecionamento, TLS conferido, resposta limitada):
+        // ver CVTE_API::opcoes_http().
+        $resposta = wp_remote_post($cred['endpoint'], CVTE_API::opcoes_http((int) $cfg['timeout'], [
+            'Content-Type'  => 'application/json',
+            'Accept'        => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode($cred['usuario'] . ':' . $cred['senha']),
+        ], $json));
 
         if (is_wp_error($resposta)) {
             $r = self::falha('Falha de rede: ' . $resposta->get_error_message(), $json);
             if ($guardar_falhas) {
-                set_transient($chave, $r, 5 * MINUTE_IN_SECONDS);
+                set_transient($chave, CVTE_API::para_cache($r), 5 * MINUTE_IN_SECONDS);
             }
             return $r;
         }
@@ -141,17 +145,20 @@ class CVBP_API
         if ($http === 401 || $http === 403) {
             return self::falha("Acesso negado pela Braspress (HTTP $http). Confira usuário, senha e ambiente (produção × homologação).", $json, $texto);
         }
+        if ($http >= 300 && $http < 400) {
+            return self::falha("A Braspress respondeu com um redirecionamento (HTTP $http). Por segurança ele não é seguido; confira o endereço da API.", $json, $texto);
+        }
 
         $r = self::interpretar($texto, $http);
         $r['enviado'] = $json;
         $r['recebido'] = $texto;
 
         if ($r['ok'] && $ttl > 0) {
-            set_transient($chave, $r, $ttl);
+            set_transient($chave, CVTE_API::para_cache($r), $ttl);
         } elseif (!$r['ok'] && $guardar_falhas && $http >= 500) {
             // Só erro do lado deles (5xx) fica guardado: um 400 por dado nosso
             // errado não deve esconder a Braspress depois que o dado for corrigido.
-            set_transient($chave, $r, 5 * MINUTE_IN_SECONDS);
+            set_transient($chave, CVTE_API::para_cache($r), 5 * MINUTE_IN_SECONDS);
         }
         return $r;
     }

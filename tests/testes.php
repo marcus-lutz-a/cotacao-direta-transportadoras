@@ -236,6 +236,28 @@ $r = CVTE_API::cotar('41000000', 5, 80, [30, 20, 15], $cfg);
 verificar('depois de subir a versão, a cotação não sai do cache', [$r['cache'], $GLOBALS['chamadas_http']], [false, 2]);
 
 // ---------------------------------------------------------------------------
+secao('7b. Travas de segurança da conexão');
+$GLOBALS['transients'] = [];
+$GLOBALS['resposta_falsa'] = ['code' => 200, 'body' => resposta_ok('30,00', '3')];
+CVTE_API::cotar('42000000', 5, 80, [30, 20, 15], $cfg);
+verificar('não segue redirecionamentos (a senha não vai para outro endereço)', $GLOBALS['ultimo_envio']['redirection'], 0);
+verificar('certificado TLS sempre conferido', $GLOBALS['ultimo_envio']['sslverify'], true);
+verificar('tamanho da resposta limitado', $GLOBALS['ultimo_envio']['limit_response_size'], CVTE_API::LIMITE_RESPOSTA);
+$guardado = reset($GLOBALS['transients']);
+verificar('o cache guarda o preço, sem o XML enviado e recebido', [$guardado['valor'], $guardado['xml_enviado'], $guardado['xml_recebido']], [30.0, '', '']);
+
+$GLOBALS['transients'] = [];
+$GLOBALS['resposta_falsa'] = ['code' => 301, 'body' => ''];
+$r = CVTE_API::cotar('43000000', 5, 80, [30, 20, 15], $cfg);
+verificar('redirecionamento (HTTP 301) vira erro claro', str_contains($r['erro'], 'redirecionamento'), true);
+verificar('redirecionamento não fica em cache', count($GLOBALS['transients']), 0);
+
+verificar('endereço https é aceito', CVTE_API::endpoint_seguro('https://edi.totalexpress.com.br/webservice_calculo_frete.php'), true);
+verificar('endereço http (sem criptografia) é recusado', CVTE_API::endpoint_seguro('http://edi.totalexpress.com.br/webservice_calculo_frete.php'), false);
+verificar('endereço sem servidor é recusado', CVTE_API::endpoint_seguro('https:///caminho'), false);
+verificar('texto que não é endereço é recusado', CVTE_API::endpoint_seguro('edi.totalexpress.com.br'), false);
+
+// ---------------------------------------------------------------------------
 secao('8. Credenciais digitadas no painel (senha criptografada)');
 $senha = 'S3nh@ <com> %20 espaços';
 $cifrada = CVTE_Config::cifrar($senha);

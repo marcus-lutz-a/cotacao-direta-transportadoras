@@ -1,33 +1,51 @@
-# Cotação por Volumes — Total Express e Braspress
+# Cotação Direta de Transportadoras
 
-Plugin para WooCommerce que cota o frete da **Total Express** direto no
-webservice da transportadora, com o **contrato da própria loja**, sem
-intermediários, e **divide o pedido em volumes** de até 30 kg.
+Plugin para WooCommerce que cota o frete **direto nas transportadoras**, com o
+**contrato da própria loja**, sem intermediário. A ideia é **não precisar de um
+gateway de cotação como a Frenet**: se a loja já tem contrato com a
+transportadora, o checkout pode perguntar o preço a ela diretamente.
 
-> Projeto independente, sem vínculo com a Total Express. Você precisa ter um
-> contrato com a Total Express e as credenciais do webservice de cálculo de frete.
+Transportadoras suportadas:
+
+| Transportadora | Integração | Desde |
+|---|---|---|
+| **Total Express** | webservice SOAP de cálculo de frete | 0.2.0 |
+| **Braspress** | API REST oficial (`/v1/cotacao/calcular/json`) | 0.3.0 |
+
+O pedido é **dividido em volumes** (caixas) antes da cotação, e as regras de
+preço da loja (embalagem, repasse do Simples, prazo extra) são aplicadas por
+cima do custo da transportadora.
+
+> Projeto independente, sem vínculo com a Total Express, a Braspress ou a
+> Frenet; os nomes são marcas dos seus titulares. Você precisa ter contrato com
+> cada transportadora que quiser usar e as credenciais da API dela.
 
 ---
 
 ## Por que existe
 
-Lojas com contrato direto com a Total Express costumam usar um gateway de frete
-pago só para mostrar o preço no checkout. Dois problemas comuns:
+Muitas lojas com contrato direto com uma transportadora usam um serviço
+intermediário de frete só para mostrar o preço no checkout. Na prática, isso
+acrescenta mais um elo que pode falhar entre a loja e a transportadora. Os
+problemas que motivaram este plugin:
 
 | Problema | Efeito para o cliente |
 |---|---|
-| O pedido é cotado como **uma caixa só** | Acima de 30 kg (limite por volume da Total Express), a opção some, justamente nos pedidos maiores |
+| O pedido é cotado como **uma caixa só** | Acima do limite por volume da transportadora (30 kg na Total Express), a opção some, justamente nos pedidos maiores |
 | Falhas silenciosas de configuração ou de tempo de resposta | A opção some sem nenhum registro do motivo |
+| Mais um serviço entre a loja e a transportadora | Mais uma dependência externa no checkout, e mais uma conta a manter |
 
 Este plugin:
 
-1. **Divide o pedido em volumes** de até 30 kg e 120 × 80 × 60 cm. Uma mesma
-   nota fiscal pode ter vários volumes;
-2. **Cota cada volume** no webservice SOAP da Total Express;
-3. **Aplica as regras de preço** da loja: embalagem por volume e repasse do
-   Simples Nacional (opcionais);
-4. **Nunca derruba o checkout:** se a Total Express falhar ou demorar, a opção
-   não aparece, os demais fretes continuam e o motivo fica no log.
+1. **Divide o pedido em volumes** respeitando os limites de cada
+   transportadora. Uma mesma nota fiscal pode ter vários volumes;
+2. **Cota direto na transportadora**, com as credenciais do contrato da loja;
+3. **Aplica as regras de preço** da loja: embalagem por volume, repasse do
+   Simples Nacional e prazo adicional (opcionais);
+4. **Nunca derruba o checkout:** se a transportadora falhar ou demorar, a opção
+   não aparece, os demais fretes continuam e o motivo fica no log;
+5. **Facilita a troca:** um botão coloca o método nas mesmas áreas de entrega
+   da Frenet, para comparar os preços lado a lado antes de desativá-la.
 
 ## Recursos
 
@@ -40,7 +58,7 @@ Este plugin:
 - **Quatro modos de implantação:** `desligado` → `admin` (só administradores
   veem, marcado como [TESTE]) → `sombra` (calcula e registra, ninguém vê) → `ativo`.
 - Tela de teste de cotação com o XML enviado e recebido.
-- **Migração da Frenet:** um botão adiciona o método a todas as áreas de entrega
+- **Saída da Frenet:** um botão adiciona o método a todas as áreas de entrega
   que já têm a Frenet, para comparar lado a lado antes de desativá-la.
 - Log de cada cálculo em WooCommerce → Status → Logs, origem `cvte-total-express`.
 
@@ -82,12 +100,15 @@ define('CVBP_SENHA',   'senha-da-api');
 ## Requisitos
 
 - WordPress 6.4+, WooCommerce 8.0+, PHP 8.0+ (com libsodium, padrão no PHP).
-- Contrato com a Total Express e usuário/senha do webservice de cálculo de frete.
+- Contrato com pelo menos uma das transportadoras e as credenciais da API dela
+  (Total Express: usuário/senha do webservice de cálculo de frete; Braspress:
+  usuário/senha da API, liberados pela filial).
 - Compatível com HPOS (tabelas de pedidos do WooCommerce).
 
 ## Instalação
 
-1. Em **Plugins → Adicionar novo → Enviar plugin**, envie o zip e ative.
+1. Em **Plugins → Adicionar novo → Enviar plugin**, envie o zip
+   (`cotacao-direta-transportadoras.zip`) e ative.
 2. Em **WooCommerce → Total Express → Credenciais do webservice**, digite o
    usuário e a senha e clique em **Salvar credenciais**.
    Alternativa (tem prioridade), no `wp-config.php`:
@@ -102,9 +123,14 @@ define('CVBP_SENHA',   'senha-da-api');
    em WooCommerce → Configurações → Entrega.
 6. Avance o modo: `admin` → `sombra` → `ativo`.
 
-> **Migrando da Frenet:** adicione o método às áreas **antes** de desativar a
-> Frenet (o botão encontra as áreas procurando a Frenet nelas) e mude o modo
-> para **ativo** antes de desativá-la.
+> **Saindo da Frenet:** adicione o método às áreas **antes** de desativar a
+> Frenet (o botão encontra as áreas procurando a Frenet nelas), compare os
+> preços no modo **admin**, mude para **ativo** e só então desative a Frenet.
+
+> **Atualizando da 0.2.0** (que se chamava *Cotação por Volumes para Total
+> Express*): desative a antiga, apague só a pasta `cotacao-volumes-total-express`
+> por FTP e instale a nova. **Não use "Excluir" no painel** na versão antiga: isso
+> apaga as configurações e as credenciais salvas. Detalhes no `CHANGELOG.md`.
 
 ## Regras de preço
 
@@ -131,8 +157,32 @@ imposto; o **"multiplicar"** reproduz a regra da Frenet.
   sanitização; saída escapada (`esc_html`/`esc_attr`); SQL só via
   `$wpdb->prepare`; valores do XML escapados.
 - Senha enviada só no cabeçalho HTTP Basic, nunca no corpo nem no log.
+- **A senha só vai para endereços `https://`**, com o certificado conferido. O
+  plugin **não segue redirecionamentos**: o WordPress, ao seguir um, reenviaria
+  o cabeçalho com a senha para o novo endereço, mesmo que fosse outro site ou
+  `http://`. Uma constante `CVTE_ENDPOINT`/`CVBP_ENDPOINT` com `http://` é recusada.
+- Respostas das transportadoras limitadas a 256 KB.
 - Teto de 2.000 unidades por pedido contra carrinhos absurdos.
 - `uninstall.php` remove configurações, credenciais salvas e cache ao excluir.
+
+### Privacidade (LGPD)
+
+- Para cotar na **Braspress**, o CPF ou CNPJ do cliente é enviado à
+  transportadora, porque o preço depende dele. Informe isso na política de
+  privacidade da loja.
+- O plugin **não guarda o documento do cliente**: o cache de cotações tem só
+  preço, prazo e número da cotação, e o log registra apenas "PF" ou "PJ".
+- O "CPF de referência" (estimativa no carrinho) deve ser de alguém que
+  autorizou o uso, por exemplo o do próprio lojista.
+
+### Recomendações para quem instala
+
+- Como qualquer cálculo de frete, cada CEP (e, na Braspress, cada documento)
+  novo gera uma consulta à transportadora. O cache e os limites de tempo
+  protegem o checkout, mas em lojas muito visadas vale um limite de requisições
+  no firewall (WAF/Cloudflare) para `?wc-ajax=update_order_review`.
+- Prefira as credenciais no `wp-config.php` quando o servidor permitir, e
+  restrinja o acesso ao painel (`manage_woocommerce`) a quem precisa.
 
 ## Decisões de projeto
 
@@ -151,14 +201,16 @@ devolvem números: são testados sem WordPress, sem banco e sem internet.
 ## Testes
 
 ```bash
-php tests/testes.php            # Total Express (60 verificações)
-php tests/testes-braspress.php  # Braspress (77 verificações)
+php tests/testes.php            # Total Express (70 verificações)
+php tests/testes-braspress.php  # Braspress (85 verificações)
 ```
 
-60 verificações: conversão monetária, leitura de respostas (sucesso, recusa,
+Total Express: conversão monetária, leitura de respostas (sucesso, recusa,
 erro SOAP, HTML inesperado), validade e escape do XML, empacotamento, folga da
 caixa, teto de unidades, cálculo de preço, cache, autenticação, cache de falhas
-e criptografia das credenciais. O arquivo só roda pela linha de comando.
+criptografia das credenciais e as travas de segurança da conexão
+(redirecionamento, https, tamanho da resposta, cache sem dados pessoais). Os
+arquivos só rodam pela linha de comando.
 
 ## Limitações conhecidas
 
@@ -167,6 +219,7 @@ e criptografia das credenciais. O arquivo só roda pela linha de comando.
 - Cota um serviço por vez (o contratado).
 - Somente cotação: registro de coleta e rastreio não estão incluídos.
 - Textos em português.
+- Em multisite, desinstalar limpa só o site atual.
 
 ## Licença
 

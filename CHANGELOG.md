@@ -1,8 +1,17 @@
 # Histórico de versões
 
 ## 0.3.0 — 2026-11-10
-Braspress.
+Braspress e novo nome: **Cotação Direta de Transportadoras**.
 
+- **Novo nome.** O plugin deixa de ser só da Total Express: passa a se chamar *Cotação Direta de Transportadoras*, com o objetivo explícito de dispensar intermediários de cotação como a Frenet. Pasta, arquivo principal e text domain mudam para `cotacao-direta-transportadoras`; o repositório no GitHub é renomeado (o endereço antigo redireciona).
+- **Atualizando da 0.2.0:** como a pasta mudou, o WordPress vê um plugin novo. 1) **Desative** a "Cotação por Volumes para Total Express"; 2) apague **só a pasta** `wp-content/plugins/cotacao-volumes-total-express` (FTP ou gerenciador de arquivos). **Não use "Excluir" no painel**: ele roda o `uninstall.php` e apaga configurações e credenciais; 3) envie a nova versão e ative. As configurações e as credenciais são mantidas, porque os nomes internos (`cvte_*`, `cvbp_*`) não mudaram. As duas versões não podem ficar ativas juntas.
+- **Checkup de segurança** (12/11/2026), nas duas transportadoras:
+  - a conexão **não segue redirecionamentos** (o WordPress reenviaria o cabeçalho com a senha ao novo endereço, até para outro site ou `http://`);
+  - a senha só vai para endereços `https://` (constantes `*_ENDPOINT` com `http://` são recusadas), com o certificado conferido;
+  - respostas limitadas a 256 KB;
+  - o cache de cotações **não guarda mais o JSON/XML enviado**, que na Braspress continha o CPF/CNPJ do cliente (LGPD);
+  - a tela de teste ignora campos enviados em formato de lista;
+  - 18 testes novos (Total Express: 70; Braspress: 85).
 - Novo método de entrega **Braspress**, cotando na API REST oficial (`/v1/cotacao/calcular/json`), com tela própria (WooCommerce → Braspress), credenciais criptografadas e ambientes de produção e homologação.
 - Uma cotação por pedido, com as caixas montadas pelo mesmo empacotador da Total Express (limite de peso por caixa configurável) e agrupadas em `cubagem` (metros).
 - CPF/CNPJ do destinatário lido do checkout ou do cadastro do cliente, validado pelos dígitos e colocado no pacote para forçar nova cotação quando muda; sem documento, a Braspress fica oculta ou usa um CPF de referência do lojista.

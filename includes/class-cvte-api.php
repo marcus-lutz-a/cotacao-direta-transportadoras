@@ -27,6 +27,53 @@ class CVTE_API
     /** Opção com o número da "geração" do cache. Mudar o número invalida tudo. */
     const OPCAO_VERSAO_CACHE = 'cvte_cache_versao';
 
+    /** Maior resposta aceita de uma transportadora (bytes). Uma cotação tem poucos KB. */
+    const LIMITE_RESPOSTA = 262144;
+
+    /**
+     * Opções HTTP comuns às duas transportadoras, com as travas de segurança:
+     *
+     *   - redirection 0: NUNCA seguir redirecionamentos. O WordPress refaz o
+     *     pedido para o novo endereço com os mesmos cabeçalhos, inclusive o
+     *     Authorization, mesmo que seja outro site ou http:// sem criptografia.
+     *     Uma API de cotação não tem motivo para redirecionar.
+     *   - sslverify true: o certificado do servidor é sempre conferido.
+     *   - limit_response_size: uma resposta gigante não ocupa a memória do site.
+     */
+    public static function opcoes_http(int $timeout, array $cabecalhos, string $corpo): array
+    {
+        return [
+            'timeout'             => $timeout,
+            'redirection'         => 0,
+            'sslverify'           => true,
+            'limit_response_size' => self::LIMITE_RESPOSTA,
+            'headers'             => $cabecalhos,
+            'body'                => $corpo,
+        ];
+    }
+
+    /**
+     * O endereço da API é seguro para receber a senha? Só https://, com host.
+     * O padrão já é https; isto protege contra uma constante *_ENDPOINT do
+     * wp-config.php digitada com http://.
+     */
+    public static function endpoint_seguro(string $url): bool
+    {
+        $partes = parse_url($url);
+        return is_array($partes) && strtolower($partes['scheme'] ?? '') === 'https' && !empty($partes['host']);
+    }
+
+    /** Resultado sem os textos enviados/recebidos, para guardar em cache. */
+    public static function para_cache(array $r): array
+    {
+        foreach (['xml_enviado', 'xml_recebido', 'enviado', 'recebido'] as $k) {
+            if (array_key_exists($k, $r)) {
+                $r[$k] = '';
+            }
+        }
+        return $r;
+    }
+
     /**
      * Cota UM volume.
      *
@@ -52,6 +99,10 @@ class CVTE_API
             return self::falha($cred['origem'] === 'ilegivel'
                 ? 'A senha salva não pôde ser lida (as chaves secretas do WordPress mudaram). Digite-a de novo em WooCommerce → Total Express.'
                 : 'Credenciais não configuradas (WooCommerce → Total Express, ou CVTE_USUARIO / CVTE_SENHA no wp-config.php).');
+        }
+
+        if (!self::endpoint_seguro($cred['endpoint'])) {
+            return self::falha('O endereço do webservice precisa começar com https:// (confira CVTE_ENDPOINT no wp-config.php). A senha não foi enviada.');
         }
 
         // As medidas vão inteiras, como pede o WSDL (nonNegativeInteger).
@@ -88,15 +139,11 @@ class CVTE_API
 
         $xml = self::montar_envelope($params);
 
-        $resposta = wp_remote_post($cred['endpoint'], [
-            'timeout' => $cfg['timeout'],
-            'headers' => [
-                'Content-Type'  => 'text/xml; charset=utf-8',
-                'SOAPAction'    => '"urn:simulaFrete#calcularFrete"',
-                'Authorization' => 'Basic ' . base64_encode($cred['usuario'] . ':' . $cred['senha']),
-            ],
-            'body'    => $xml,
-        ]);
+        $resposta = wp_remote_post($cred['endpoint'], self::opcoes_http((int) $cfg['timeout'], [
+            'Content-Type'  => 'text/xml; charset=utf-8',
+            'SOAPAction'    => '"urn:simulaFrete#calcularFrete"',
+            'Authorization' => 'Basic ' . base64_encode($cred['usuario'] . ':' . $cred['senha']),
+        ], $xml));
 
         if (is_wp_error($resposta)) {
             $r = self::falha('Falha de rede: ' . $resposta->get_error_message(), $xml);
@@ -113,6 +160,10 @@ class CVTE_API
             // Credencial errada não é guardada em cache: corrigiu, funciona na hora.
             return self::falha("Acesso negado pela Total Express (HTTP $http). Confira usuário e senha.", $xml, $corpo);
         }
+        if ($http >= 300 && $http < 400) {
+            // Não seguimos redirecionamentos (ver opcoes_http): a senha não vai junto.
+            return self::falha("A Total Express respondeu com um redirecionamento (HTTP $http). Por segurança ele não é seguido; confira o endereço do webservice.", $xml, $corpo);
+        }
 
         $r = self::interpretar($corpo);
         $r['xml_enviado'] = $xml;
@@ -122,7 +173,7 @@ class CVTE_API
         }
 
         if ($r['ok'] && $cfg['cache_horas'] > 0) {
-            set_transient($chave, $r, $cfg['cache_horas'] * HOUR_IN_SECONDS);
+            set_transient($chave, self::para_cache($r), $cfg['cache_horas'] * HOUR_IN_SECONDS);
         } elseif (!$r['ok'] && $guardar_falhas) {
             self::guardar_falha($chave, $r);
         }
@@ -244,6 +295,6 @@ class CVTE_API
      */
     private static function guardar_falha(string $chave, array $r): void
     {
-        set_transient($chave, $r, 5 * MINUTE_IN_SECONDS);
+        set_transient($chave, self::para_cache($r), 5 * MINUTE_IN_SECONDS);
     }
 }
