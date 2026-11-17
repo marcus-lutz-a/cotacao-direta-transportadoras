@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 0.3.2 — 2026-11-17
+Correção urgente: a instalação ao lado da 0.2.0 derrubava o site.
+
+- **Erro fatal com a 0.2.0 ainda ativa.** As duas versões usam as mesmas constantes. Quando a 0.2.0 carregava primeiro, a 0.3.x procurava os arquivos da Braspress na pasta da 0.2.0 (`cotacao-volumes-total-express/includes/braspress/...`), que não existem: erro fatal em todas as páginas (aconteceu em produção, 17/11). Agora, enquanto a versão antiga estiver ativa, esta **não carrega nada** e mostra um aviso no painel; a antiga segue funcionando sozinha. E esta **se recusa a ser ativada** enquanto a antiga estiver ativa, explicando o que fazer.
+
 ## 0.3.1 — 2026-11-17
 Correções da revisão de segurança de 17/11/2026.
 

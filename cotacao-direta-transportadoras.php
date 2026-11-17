@@ -4,7 +4,7 @@
  * Description:       Cota o frete direto nas transportadoras, com o contrato da própria loja e sem
  *                    intermediário (dispensa a Frenet): Total Express (webservice) e Braspress (API REST),
  *                    dividindo o pedido em volumes.
- * Version:           0.3.1
+ * Version:           0.3.2
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Marcus Lutz
@@ -44,7 +44,45 @@ if (!defined('ABSPATH')) {
     exit; // Acesso direto ao arquivo pelo navegador: não faz nada.
 }
 
-define('CVTE_VERSAO', '0.3.1');
+/*
+ * CONVIVÊNCIA COM A VERSÃO ANTIGA (0.2.0, pasta cotacao-volumes-total-express)
+ *
+ * As duas usam as mesmas classes e constantes. Com as duas ativas, a que
+ * carregasse primeiro "ganhava" o caminho dos arquivos, e esta procurava os
+ * arquivos da Braspress na pasta da antiga: erro fatal e site fora do ar
+ * (aconteceu em produção em 17/11/2026). Agora, enquanto a antiga estiver
+ * ativa, esta não carrega nada: só mostra um aviso no painel, e a antiga
+ * segue funcionando sozinha. Na ativação, esta se recusa a ativar e explica.
+ */
+$cvte_antiga = 'cotacao-volumes-total-express/cotacao-volumes-total-express.php';
+
+register_activation_hook(__FILE__, static function () use ($cvte_antiga) {
+    if (in_array($cvte_antiga, (array) get_option('active_plugins', []), true)) {
+        wp_die(
+            '<p><strong>Cotação Direta de Transportadoras não foi ativada.</strong></p>'
+            . '<p>A versão antiga, "Cotação por Volumes para Total Express", ainda está ativa. Desative-a primeiro '
+            . '(<strong>não use "Excluir"</strong>, que apagaria as configurações e a senha da Total Express) e depois ative esta.</p>',
+            'Desative a versão antiga primeiro',
+            ['back_link' => true]
+        );
+    }
+});
+
+if (defined('CVTE_VERSAO') || in_array($cvte_antiga, (array) get_option('active_plugins', []), true)) {
+    add_action('admin_notices', static function () {
+        if (current_user_can('activate_plugins')) {
+            echo '<div class="notice notice-error"><p><strong>Cotação Direta de Transportadoras está em pausa:</strong> '
+                . 'a versão antiga, "Cotação por Volumes para Total Express", ainda está ativa, e só ela está funcionando. '
+                . 'Desative a antiga em Plugins (<strong>não use "Excluir"</strong>, que apagaria as configurações e a senha) '
+                . 'para esta assumir com as mesmas configurações.</p></div>';
+        }
+    });
+    unset($cvte_antiga);
+    return; // não define constantes nem carrega classes: a antiga segue sozinha
+}
+unset($cvte_antiga);
+
+define('CVTE_VERSAO', '0.3.2');
 define('CVTE_DIR', plugin_dir_path(__FILE__));
 
 /*
