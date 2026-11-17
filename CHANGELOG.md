@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.3.3 — 2026-11-17
+A Braspress aparece desde a página do produto.
+
+- **Cotação sem o CPF do cliente.** A API da Braspress exige um documento do destinatário; até aqui, sem ele (página do produto, carrinho, simuladores de frete), a Braspress ficava escondida. Nova opção, que passa a ser o padrão: **estimar com o CNPJ da própria loja**. Testado na API real em 17/11: mesmo preço que com CPF (Salvador, São Paulo); em Manaus a estimativa fica acima (nunca abaixo). No checkout, com o CPF/CNPJ digitado, a cotação é refeita com o documento real. Funciona também no "Shipping Simulator for WooCommerce" (página do produto).
+- **Exibição "Sempre as duas" passa a ser o padrão** (antes: "âncora", que escondia a opção 3× mais cara).
+- Quem já salvou as configurações da Braspress precisa trocar as duas opções na tela WooCommerce → Braspress (os valores salvos têm prioridade sobre os padrões).
+- A decisão do documento virou função pura (`CVBP_Documento::para_cotacao`), com 8 testes novos (Braspress: 97).
+
 ## 0.3.2 — 2026-11-17
 Correção urgente: a instalação ao lado da 0.2.0 derrubava o site.
 

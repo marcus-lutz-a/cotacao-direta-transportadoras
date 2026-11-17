@@ -80,12 +80,17 @@ Segundo método de entrega, independente da Total Express, com tela própria em
 checkout (configuráveis; o padrão cobre o *Brazilian Market on WooCommerce*) e
 no cadastro do cliente logado, e o coloca no pacote de entrega — assim o
 WooCommerce recota quando o cliente digita ou troca o documento. Sem documento
-(carrinho, página do produto), a Braspress fica oculta ou é estimada com um CPF
-de referência informado pelo lojista. O plugin nunca inventa um documento.
+(página do produto, carrinho, simuladores de frete), o padrão desde a 0.3.3 é
+**estimar com o CNPJ da própria loja** como destinatário: a API exige um
+documento e aceita esse, e nos testes o preço foi igual ao de CPF (em Manaus,
+maior; a estimativa nunca fica abaixo). Alternativas: ocultar a Braspress até o
+documento ser digitado, ou estimar com um CPF de referência do lojista. O plugin
+nunca inventa um documento.
 
 **Exibição junto com a Total Express.** Com a Braspress visível, as opções são
-ordenadas da mais barata para a mais cara e, no modo "âncora", uma opção deste
-plugin que custe mais de N vezes a mais barata é escondida (padrão 3×). Opções
+ordenadas da mais barata para a mais cara. O padrão (desde a 0.3.3) é mostrar
+**sempre as duas**; há também o modo "âncora", em que uma opção deste plugin que
+custe mais de N vezes a mais barata é escondida, e o modo "só a mais barata". Opções
 de outros plugins nunca são escondidas. Nos modos `desligado` e `sombra` o
 checkout fica exatamente como antes.
 
@@ -172,8 +177,9 @@ imposto; o **"multiplicar"** reproduz a regra da Frenet.
   privacidade da loja.
 - O plugin **não guarda o documento do cliente**: o cache de cotações tem só
   preço, prazo e número da cotação, e o log registra apenas "PF" ou "PJ".
-- O "CPF de referência" (estimativa no carrinho) deve ser de alguém que
-  autorizou o uso, por exemplo o do próprio lojista.
+- Sem o documento do cliente, a estimativa usa o **CNPJ da própria loja** (padrão).
+  Se optar pelo "CPF de referência", ele deve ser de alguém que autorizou o uso,
+  por exemplo o do próprio lojista.
 
 ### Recomendações para quem instala
 
@@ -202,7 +208,7 @@ devolvem números: são testados sem WordPress, sem banco e sem internet.
 
 ```bash
 php tests/testes.php            # Total Express (74 verificações)
-php tests/testes-braspress.php  # Braspress (89 verificações)
+php tests/testes-braspress.php  # Braspress (97 verificações)
 ```
 
 Total Express: conversão monetária, leitura de respostas (sucesso, recusa,

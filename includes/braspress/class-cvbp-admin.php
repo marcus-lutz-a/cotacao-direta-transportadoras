@@ -248,10 +248,11 @@ class CVBP_Admin
                         <option value="2" <?php selected($cfg['tipo_frete'], 2); ?>>FOB — o destinatário paga</option>
                         <option value="3" <?php selected($cfg['tipo_frete'], 3); ?>>Consignado</option></select></td></tr>
                     <tr><th>Sem CPF/CNPJ do cliente</th><td><select name="documento_desconhecido">
+                        <option value="cnpj_loja" <?php selected($cfg['documento_desconhecido'], 'cnpj_loja'); ?>>Estimar com o CNPJ da loja (recomendado: aparece na página do produto e no carrinho)</option>
                         <option value="ocultar" <?php selected($cfg['documento_desconhecido'], 'ocultar'); ?>>Não mostrar a Braspress até o documento ser informado</option>
                         <option value="cpf_referencia" <?php selected($cfg['documento_desconhecido'], 'cpf_referencia'); ?>>Estimar como pessoa física, com o CPF de referência</option></select>
                         <br>CPF de referência <?php $texto('cpf_referencia', $cfg['cpf_referencia'], 'regular-text'); ?>
-                        <p class="description">Um CPF real, de quem autorizou o uso (ex.: o seu). Ele só serve para a Braspress devolver o preço de pessoa física antes de o cliente digitar o dele.</p></td></tr>
+                        <p class="description">Um CPF real, de quem autorizou o uso (ex.: o seu). Ele só serve para a Braspress devolver o preço de pessoa física antes de o cliente digitar o dele. Só é usado na opção "CPF de referência".</p></td></tr>
                     <tr><th>Campos de CPF/CNPJ no checkout</th><td><?php $texto('campos_documento', $cfg['campos_documento'], 'large-text'); ?>
                         <p class="description">Nomes dos campos, separados por vírgula, na ordem em que devem ser procurados.</p></td></tr>
                     <tr><th>Exibição junto com a Total Express</th><td><select name="exibicao">

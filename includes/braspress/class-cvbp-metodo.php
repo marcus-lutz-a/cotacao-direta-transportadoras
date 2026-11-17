@@ -59,17 +59,14 @@ class CVBP_Metodo extends WC_Shipping_Method
             return;
         }
 
-        // 1. Documento do destinatário (colocado no pacote por CVBP_Documento::no_pacote).
-        $doc = $pacote['cvbp_documento'] ?? null;
-        $estimado = false;
+        // 1. Documento do destinatário: o do cliente (colocado no pacote por
+        //    CVBP_Documento::no_pacote) ou, sem ele (página do produto, carrinho),
+        //    a estimativa configurada (padrão: CNPJ da loja).
+        $doc = CVBP_Documento::para_cotacao($pacote['cvbp_documento'] ?? null, $cfg);
         if (!$doc) {
-            if ($cfg['documento_desconhecido'] === 'cpf_referencia' && CVBP_Documento::cpf_valido($cfg['cpf_referencia'])) {
-                $doc = ['numero' => $cfg['cpf_referencia'], 'tipo' => 'PF'];
-                $estimado = true;
-            } else {
-                return; // sem documento: a Braspress aparece no checkout, quando o CPF/CNPJ for digitado
-            }
+            return; // modo "ocultar": a Braspress aparece quando o CPF/CNPJ for digitado
         }
+        $estimado = $doc['estimado'];
 
         // 2. Caixas.
         $emb = CVTE_Empacotador::empacotar(self::itens_do_pacote($pacote, $cfg, [$this, 'log']), $cfg);
@@ -99,7 +96,7 @@ class CVBP_Metodo extends WC_Shipping_Method
 
         $this->log(sprintf(
             'CEP %s [%s] %s%s: %d volume(s), %.2f kg → custo Braspress R$ %s → cliente R$ %s, %s%s',
-            $cep, $cfg['modo'], $doc['tipo'], $estimado ? ' (CPF de referência)' : '',
+            $cep, $cfg['modo'], $doc['tipo'], $estimado ? ' (estimado, sem documento do cliente)' : '',
             $n, array_sum(array_column($emb['volumes'], 'peso')),
             number_format($r['valor'], 2, ',', '.'), number_format($preco, 2, ',', '.'),
             $prazo ? $prazo . ' dias' : 'SEM PRAZO', $r['cache'] ? ' (cache)' : ''

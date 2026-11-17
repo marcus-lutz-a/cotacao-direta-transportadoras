@@ -231,7 +231,7 @@ $GLOBALS['opcoes'][CVBP_Config::OPCAO] = ['modo' => 'desligado'];
 verificar('modo desligado: checkout intocado (mesma ordem)', array_keys(CVBP_Exibicao::filtrar($lista, [])), ['bp', 'tex']);
 $GLOBALS['opcoes'][CVBP_Config::OPCAO] = ['modo' => 'sombra'];
 verificar('modo sombra: checkout intocado', array_keys(CVBP_Exibicao::filtrar($lista, [])), ['bp', 'tex']);
-$GLOBALS['opcoes'][CVBP_Config::OPCAO] = ['modo' => 'admin'];
+$GLOBALS['opcoes'][CVBP_Config::OPCAO] = ['modo' => 'admin', 'exibicao' => 'ancora'];
 verificar('modo admin, cliente comum: intocado', array_keys(CVBP_Exibicao::filtrar($lista, [])), ['bp', 'tex']);
 $GLOBALS['eh_admin'] = true;
 verificar('modo admin, administrador: âncora aplicada', array_keys(CVBP_Exibicao::filtrar($lista, [])), ['tex']);
@@ -247,6 +247,17 @@ verificar('CEP com hífen é aceito', $s['cep_origem'], '41940430');
 verificar('modo inválido volta ao padrão', $s['modo'], 'admin');
 verificar('vírgula decimal aceita', $s['limite_ancora'], 2.5);
 verificar('nomes de campos são higienizados', $s['campos_documento'], 'billing_cpf,scriptx');
+verificar('padrão (0.3.3): estimar com o CNPJ da loja', CVBP_Config::padroes()['documento_desconhecido'], 'cnpj_loja');
+verificar('padrão (0.3.3): exibir sempre as duas', CVBP_Config::padroes()['exibicao'], 'sempre');
+verificar('opção cnpj_loja é aceita ao salvar', CVBP_Config::sanitizar(['documento_desconhecido' => 'cnpj_loja'])['documento_desconhecido'], 'cnpj_loja');
+
+// Documento usado na cotação (página do produto e carrinho não têm CPF)
+$cfg_doc = ['documento_desconhecido' => 'cnpj_loja', 'cnpj_remetente' => CNPJ_EXEMPLO, 'cpf_referencia' => ''];
+verificar('com documento do cliente: usa o do cliente', CVBP_Documento::para_cotacao(['numero' => CPF_EXEMPLO, 'tipo' => 'PF'], $cfg_doc), ['numero' => CPF_EXEMPLO, 'tipo' => 'PF', 'estimado' => false]);
+verificar('sem documento, cnpj_loja: usa o CNPJ da loja (estimado)', CVBP_Documento::para_cotacao(null, $cfg_doc), ['numero' => CNPJ_EXEMPLO, 'tipo' => 'PJ', 'estimado' => true]);
+verificar('sem documento, cnpj_loja sem CNPJ válido: não cota', CVBP_Documento::para_cotacao(null, ['cnpj_remetente' => ''] + $cfg_doc), null);
+verificar('sem documento, ocultar: não cota', CVBP_Documento::para_cotacao(null, ['documento_desconhecido' => 'ocultar'] + $cfg_doc), null);
+verificar('sem documento, cpf_referencia: usa o CPF de referência', CVBP_Documento::para_cotacao(null, ['documento_desconhecido' => 'cpf_referencia', 'cpf_referencia' => CPF_EXEMPLO] + $cfg_doc)['numero'], CPF_EXEMPLO);
 verificar('CNPJ inválido é descartado', CVBP_Config::sanitizar(['cnpj_remetente' => '123'])['cnpj_remetente'], '');
 
 $GLOBALS['opcoes'] = [];

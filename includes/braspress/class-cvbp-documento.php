@@ -122,6 +122,28 @@ class CVBP_Documento
         return null;
     }
 
+    /**
+     * Qual documento usar na cotação. Função pura.
+     *
+     * @param array|null $do_cliente documento do cliente (do pacote), ou null
+     * @param array      $cfg        documento_desconhecido, cpf_referencia, cnpj_remetente
+     * @return array|null ['numero', 'tipo', 'estimado' => bool], ou null = não cotar
+     */
+    public static function para_cotacao(?array $do_cliente, array $cfg): ?array
+    {
+        if ($do_cliente && !empty($do_cliente['numero'])) {
+            return $do_cliente + ['estimado' => false];
+        }
+        $modo = $cfg['documento_desconhecido'] ?? 'ocultar';
+        if ($modo === 'cnpj_loja' && self::cnpj_valido((string) ($cfg['cnpj_remetente'] ?? ''))) {
+            return ['numero' => self::limpar($cfg['cnpj_remetente']), 'tipo' => 'PJ', 'estimado' => true];
+        }
+        if ($modo === 'cpf_referencia' && self::cpf_valido((string) ($cfg['cpf_referencia'] ?? ''))) {
+            return ['numero' => self::limpar($cfg['cpf_referencia']), 'tipo' => 'PF', 'estimado' => true];
+        }
+        return null;
+    }
+
     /* ------------------------------------------------------------------------
      * Integração com o WooCommerce
      * --------------------------------------------------------------------- */

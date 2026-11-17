@@ -52,13 +52,21 @@ class CVBP_Config
              * O preço da Braspress depende de o destinatário ser pessoa física
              * (CPF) ou jurídica (CNPJ). No carrinho e na página do produto o
              * documento ainda é desconhecido. O que fazer nesse caso:
+             *   cnpj_loja      → (padrão desde a 0.3.3) cota com o CNPJ da
+             *                     própria loja como destinatário. A API exige um
+             *                     documento e aceita este; nos testes de 17/11 o
+             *                     preço foi igual ao de CPF (Manaus: maior, ou
+             *                     seja, a estimativa nunca fica abaixo). Assim a
+             *                     Braspress aparece na página do produto e no
+             *                     carrinho; no checkout, com o CPF/CNPJ digitado,
+             *                     a cotação é refeita com o documento real;
              *   ocultar        → a Braspress só aparece quando há documento
              *                     (no checkout, ou cliente logado com CPF/CNPJ salvo);
              *   cpf_referencia → cota com o "CPF de referência" abaixo, para
              *                     mostrar já no carrinho o preço de pessoa física
              *                     (o cenário mais caro, nunca subestima).
              */
-            'documento_desconhecido' => 'ocultar',
+            'documento_desconhecido' => 'cnpj_loja',
             'cpf_referencia'        => '',
 
             // Campos do checkout onde procurar o CPF/CNPJ, em ordem.
@@ -92,7 +100,7 @@ class CVBP_Config
              *                 "limite_ancora" vezes a mais barata;
              *   mais_barata → só a mais barata das duas.
              */
-            'exibicao'              => 'ancora',
+            'exibicao'              => 'sempre',
             'limite_ancora'         => 3.0,
 
             'titulo'                => 'Braspress',
@@ -130,7 +138,7 @@ class CVBP_Config
             'cep_origem'             => strlen($cep) === 8 ? $cep : '',
             'modal'                  => $lista($bruto['modal'] ?? '', ['R', 'A'], $p['modal']),
             'tipo_frete'             => (int) $lista((int) ($bruto['tipo_frete'] ?? 0), [1, 2, 3], $p['tipo_frete']),
-            'documento_desconhecido' => $lista($bruto['documento_desconhecido'] ?? '', ['ocultar', 'cpf_referencia'], $p['documento_desconhecido']),
+            'documento_desconhecido' => $lista($bruto['documento_desconhecido'] ?? '', ['cnpj_loja', 'ocultar', 'cpf_referencia'], $p['documento_desconhecido']),
             'cpf_referencia'         => CVBP_Documento::cpf_valido($cpf) ? $cpf : '',
             'campos_documento'       => $campos !== '' ? $campos : $p['campos_documento'],
             'simples_pct'            => $num($bruto['simples_pct'] ?? null, $p['simples_pct'], 0, 30),
