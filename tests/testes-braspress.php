@@ -123,6 +123,12 @@ verificar('sucesso reconhecido', $r['ok'], true);
 verificar('valor lido', $r['valor'], 83.21);
 verificar('prazo lido', $r['prazo'], 5);
 verificar('id da cotação lido', $r['id'], '987');
+$r = CVBP_API::interpretar('{"id":"<script>1</script>99","prazo":5,"totalFrete":83.21}');
+verificar('id da cotação: só dígitos (vai para o pedido)', $r['id'], '199');
+$r = CVBP_API::interpretar('{"id":{"x":1},"prazo":5,"totalFrete":83.21}');
+verificar('id em formato estranho vira vazio, sem erro', $r['id'], '');
+$r = CVBP_API::interpretar('{"statusCode":["x"],"message":"falhou"}', 500);
+verificar('statusCode em formato estranho não quebra a mensagem', $r['erro'], 'Braspress recusou: falhou');
 verificar('valor como texto "83,21"', CVBP_API::interpretar('{"prazo":"5","totalFrete":"83,21"}')['valor'], 83.21);
 verificar('resposta dentro de lista', CVBP_API::interpretar('[{"prazo":3,"totalFrete":40}]')['valor'], 40.0);
 $r = CVBP_API::interpretar('{"statusCode":400,"message":"CEP destino inválido","dateTime":"x","errorList":[{"message":"cepDestino"}]}', 400);
@@ -155,6 +161,9 @@ verificar('certificado TLS sempre conferido', $GLOBALS['ultimo_envio']['sslverif
 verificar('tamanho da resposta limitado', $GLOBALS['ultimo_envio']['limit_response_size'], CVTE_API::LIMITE_RESPOSTA);
 verificar('o cache guarda o preço', in_array(141.84, array_column($GLOBALS['transients'], 'valor'), true), true);
 verificar('o cache não guarda o CPF/CNPJ do cliente (LGPD)', str_contains(json_encode($GLOBALS['transients']), CPF_EXEMPLO), false);
+// Revisão de 17/11/2026 (0.3.1)
+$nome_cache = array_key_first($GLOBALS['transients']);
+verificar('nome do cache é HMAC (com segredo), não md5 do pedido', $nome_cache !== 'cvbp_' . md5($GLOBALS['ultimo_envio']['body'] . '|usuario-teste|' . CVBP_Config::ENDPOINTS['producao'] . '|1') && strlen($nome_cache) === 5 + 64, true);
 
 $cfg_h = ['ambiente' => 'homologacao', 'cache_horas' => 0] + $cfg;
 CVBP_API::cotar($envio_api, $cfg_h);

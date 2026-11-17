@@ -113,7 +113,10 @@ class CVBP_API
         // passa por CVTE_API::para_cache(): sem o JSON enviado, que tem o CPF/CNPJ
         // do cliente (LGPD: o banco não guarda o documento por causa do frete).
         $versao = (int) get_option(self::OPCAO_VERSAO_CACHE, 1);
-        $chave = 'cvbp_' . md5($json . '|' . $cred['usuario'] . '|' . $cred['endpoint'] . '|' . $versao);
+        // HMAC com a chave secreta do site (e não um md5 simples): o JSON tem o
+        // CPF, e um hash sem segredo permitiria descobri-lo por tentativa a
+        // partir do nome do cache.
+        $chave = 'cvbp_' . hash_hmac('sha256', $json . '|' . $cred['usuario'] . '|' . $cred['endpoint'] . '|' . $versao, (string) CVTE_Config::chave());
         $ttl = CVBP_Config::segundos_de_cache($cfg, time(), self::meia_noite());
         if ($ttl > 0) {
             $guardado = get_transient($chave);
@@ -187,7 +190,8 @@ class CVBP_API
             return [
                 'ok' => true, 'valor' => round($valor, 2),
                 'prazo' => (int) preg_replace('/\D/', '', (string) ($dados['prazo'] ?? '0')),
-                'id' => (string) ($dados['id'] ?? ''), 'erro' => '', 'cache' => false,
+                // Só dígitos: o número vai para os dados do pedido.
+                'id' => substr(preg_replace('/\D/', '', is_scalar($dados['id'] ?? null) ? (string) $dados['id'] : ''), 0, 20), 'erro' => '', 'cache' => false,
             ];
         }
 
@@ -198,7 +202,7 @@ class CVBP_API
         foreach ((array) ($dados['errorList'] ?? []) as $item) {
             $mensagens[] = is_array($item) ? (string) ($item['message'] ?? wp_json_encode($item)) : (string) $item;
         }
-        $codigo = isset($dados['statusCode']) ? ' (código ' . $dados['statusCode'] . ')' : '';
+        $codigo = isset($dados['statusCode']) && is_scalar($dados['statusCode']) ? ' (código ' . (int) $dados['statusCode'] . ')' : '';
         return self::falha('Braspress recusou' . $codigo . ($mensagens ? ': ' . implode(' | ', array_unique($mensagens)) : '.'));
     }
 

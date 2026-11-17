@@ -44,6 +44,17 @@ class CVTE_Empacotador
     const MAX_UNIDADES = 2000;
 
     /**
+     * Teto de caixas por pedido (desde a 0.3.1). Cada unidade é testada em
+     * todas as caixas já abertas; com produtos volumosos (uma caixa por
+     * unidade), 2.000 unidades custavam ~8 s de CPU por cálculo de frete, e
+     * qualquer visitante podia repetir isso trocando o CEP (sobrecarga do
+     * site). 30 caixas = até ~900 kg: 100 kg de malte em pacotes de 100 g
+     * dão 4 caixas; 10 kits de 20 L, 10 caixas. Acima disso a cotação
+     * automática não aparece, e as outras opções de frete seguem.
+     */
+    const MAX_VOLUMES = 30;
+
+    /**
      * @param array $itens  lista de ['nome','peso' (kg),'dims' => [c,l,a] (cm),'valor' (R$),'qtd']
      * @param array $cfg    configuração (peso_max_volume, dim_max, dim_min)
      * @return array ['ok' => bool, 'erro' => string, 'volumes' => [ ['peso','valor','dims','itens'] ]]
@@ -91,6 +102,11 @@ class CVTE_Empacotador
         foreach ($unidades as $u) {
             $colocado = false;
             foreach ($caixas as &$caixa) {
+                // Caixa sem espaço para o peso: descarta antes de copiar a
+                // caixa e recalcular medidas (a parte cara do teste).
+                if ($caixa['peso'] + $u['peso'] > $max_peso + 1e-9) {
+                    continue;
+                }
                 $teste = $caixa;
                 $teste['unidades'][] = $u;
                 $teste['peso'] += $u['peso'];
@@ -103,6 +119,9 @@ class CVTE_Empacotador
             unset($caixa); // boa prática do PHP após foreach por referência
 
             if (!$colocado) {
+                if (count($caixas) >= self::MAX_VOLUMES) {
+                    return self::erro(sprintf('Pedido grande demais para cotação automática: mais de %d volumes.', self::MAX_VOLUMES));
+                }
                 $caixas[] = ['peso' => $u['peso'], 'unidades' => [$u]];
             }
         }

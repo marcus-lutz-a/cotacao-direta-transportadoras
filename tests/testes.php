@@ -166,6 +166,18 @@ verificar('item pequeno usa a caixa mínima 20×16×10', $e['volumes'][0]['dims'
 $e = CVTE_Empacotador::empacotar([$kg + ['qtd' => 3]], $cfg);
 verificar('valor declarado soma os itens do volume', $e['volumes'][0]['valor'], 39.0);
 
+// Teto de volumes (revisão de segurança de 17/11/2026, 0.3.1)
+$grande = ['nome' => 'Kit 20 L', 'peso' => 7.0, 'dims' => [50, 50, 50], 'valor' => 1];
+$e = CVTE_Empacotador::empacotar([$grande + ['qtd' => 30]], $cfg);
+verificar('30 volumes: ainda cota', [$e['ok'], count($e['volumes'] ?? [])], [true, 30]);
+$e = CVTE_Empacotador::empacotar([$grande + ['qtd' => 31]], $cfg);
+verificar('31 volumes: recusa (pedido grande demais)', [$e['ok'], str_contains($e['erro'], 'mais de 30 volumes')], [false, true]);
+$t0 = microtime(true);
+$e = CVTE_Empacotador::empacotar([['nome' => 'Caixa leve', 'peso' => 0.2, 'dims' => [60, 40, 40], 'valor' => 1, 'qtd' => 2000]], $cfg);
+verificar('pior caso (2000 itens volumosos) recusado em menos de 0,5 s', !$e['ok'] && (microtime(true) - $t0) < 0.5, true);
+$e = CVTE_Empacotador::empacotar([['nome' => 'Malte 100 g', 'peso' => 0.1, 'dims' => [15, 10, 4], 'valor' => 2, 'qtd' => 2000]], $cfg);
+verificar('2000 × malte 100 g (200 kg) continua cotando: 7 volumes', [$e['ok'], count($e['volumes'])], [true, 7]);
+
 // Folga da caixa: só vale para 2 ou mais itens.
 $unid = ['dims' => [40.0, 30.0, 20.0], 'cm3' => 24000];
 verificar('1 item: medidas do cadastro, sem folga', CVTE_Empacotador::medidas([$unid], 0.15), [40.0, 30.0, 20.0]);

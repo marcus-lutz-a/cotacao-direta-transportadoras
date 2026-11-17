@@ -162,7 +162,7 @@ imposto; o **"multiplicar"** reproduz a regra da Frenet.
   o cabeçalho com a senha para o novo endereço, mesmo que fosse outro site ou
   `http://`. Uma constante `CVTE_ENDPOINT`/`CVBP_ENDPOINT` com `http://` é recusada.
 - Respostas das transportadoras limitadas a 256 KB.
-- Teto de 2.000 unidades por pedido contra carrinhos absurdos.
+- Teto de 2.000 unidades e de 30 volumes por pedido contra carrinhos absurdos (que serviriam para sobrecarregar o servidor).
 - `uninstall.php` remove configurações, credenciais salvas e cache ao excluir.
 
 ### Privacidade (LGPD)
@@ -201,8 +201,8 @@ devolvem números: são testados sem WordPress, sem banco e sem internet.
 ## Testes
 
 ```bash
-php tests/testes.php            # Total Express (70 verificações)
-php tests/testes-braspress.php  # Braspress (85 verificações)
+php tests/testes.php            # Total Express (74 verificações)
+php tests/testes-braspress.php  # Braspress (89 verificações)
 ```
 
 Total Express: conversão monetária, leitura de respostas (sucesso, recusa,

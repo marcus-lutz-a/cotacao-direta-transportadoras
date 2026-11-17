@@ -4,7 +4,7 @@
  * Description:       Cota o frete direto nas transportadoras, com o contrato da própria loja e sem
  *                    intermediário (dispensa a Frenet): Total Express (webservice) e Braspress (API REST),
  *                    dividindo o pedido em volumes.
- * Version:           0.3.0
+ * Version:           0.3.1
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Marcus Lutz
@@ -44,7 +44,7 @@ if (!defined('ABSPATH')) {
     exit; // Acesso direto ao arquivo pelo navegador: não faz nada.
 }
 
-define('CVTE_VERSAO', '0.3.0');
+define('CVTE_VERSAO', '0.3.1');
 define('CVTE_DIR', plugin_dir_path(__FILE__));
 
 /*

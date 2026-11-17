@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.3.1 — 2026-11-17
+Correções da revisão de segurança de 17/11/2026.
+
+- **Sobrecarga pelo carrinho (gravidade média, existia desde a 0.2.0).** Com milhares de unidades de um produto volumoso, o empacotador gastava ~8 s de CPU por cálculo de frete, e qualquer visitante podia repetir isso trocando o CEP. Agora há um teto de **30 volumes por pedido** (até ~900 kg; 100 kg de malte em pacotes de 100 g dão 4 volumes). Acima disso, a cotação automática não aparece, e as outras opções de frete seguem. O empacotador também descarta pelo peso, antes do cálculo caro, as caixas já cheias. Pior caso: de ~8 s para centésimos de segundo.
+- **Braspress:** o nome do cache passa a ser um HMAC com a chave secreta do site, em vez de um md5 do pedido (que contém o CPF/CNPJ); o número da cotação, gravado no pedido, aceita só dígitos; um `statusCode` fora do formato não quebra a mensagem de erro.
+- 8 testes novos (Total Express: 74; Braspress: 89), incluindo um que garante o tempo baixo no pior caso.
+- Atualizando da 0.3.0: envie o zip por cima (Plugins → Adicionar novo → Enviar plugin → "Substituir a atual"). Atualizando da 0.2.0: siga as instruções da 0.3.0 abaixo.
+
 ## 0.3.0 — 2026-11-10
 Braspress e novo nome: **Cotação Direta de Transportadoras**.
 
