@@ -128,6 +128,19 @@ define('CVBP_SENHA',   'senha-da-api');
    em WooCommerce → Configurações → Entrega.
 6. Avance o modo: `admin` → `sombra` → `ativo`.
 
+**Braspress** (opcional), em **WooCommerce → Braspress**:
+
+1. **Credenciais da API** (usuário e senha do contrato) → **Salvar credenciais**.
+   Alternativa no `wp-config.php`: `CVBP_USUARIO` e `CVBP_SENHA`.
+2. **Regras:** preencha o **CNPJ do remetente** (o da loja, que tem o contrato) e
+   o **CEP de origem**. Sem eles a Braspress não cota e não aparece em lugar
+   nenhum (o motivo fica só no log `cvbp-braspress`, em WooCommerce → Status → Logs).
+3. Confira "Sem CPF/CNPJ do cliente" (padrão: estimar com o CNPJ da loja) e a
+   exibição (padrão: sempre as duas).
+4. **Testar uma cotação** com um CEP e um CPF reais.
+5. Adicione a Braspress às áreas de entrega (botão "Adicionar a Braspress às
+   áreas que têm a Total Express") e avance o modo, como na Total Express.
+
 > **Saindo da Frenet:** adicione o método às áreas **antes** de desativar a
 > Frenet (o botão encontra as áreas procurando a Frenet nelas), compare os
 > preços no modo **admin**, mude para **ativo** e só então desative a Frenet.
@@ -135,7 +148,9 @@ define('CVBP_SENHA',   'senha-da-api');
 > **Atualizando da 0.2.0** (que se chamava *Cotação por Volumes para Total
 > Express*): desative a antiga, apague só a pasta `cotacao-volumes-total-express`
 > por FTP e instale a nova. **Não use "Excluir" no painel** na versão antiga: isso
-> apaga as configurações e as credenciais salvas. Detalhes no `CHANGELOG.md`.
+> apaga as configurações e as credenciais salvas. Desde a 0.3.2, a nova se recusa
+> a ativar enquanto a antiga estiver ativa (antes, as duas juntas derrubavam o
+> site). Detalhes no `CHANGELOG.md`.
 
 ## Regras de preço
 
@@ -223,6 +238,9 @@ arquivos só rodam pela linha de comando.
 - O empacotamento é uma heurística: estima as caixas pelo volume, não simula o
   encaixe físico. A folga padrão (15%) deve ser calibrada com etiquetas reais.
 - Cota um serviço por vez (o contratado).
+- O peso cubado não é calculado pelo plugin: a transportadora aplica o dela, e
+  volumes leves e grandes podem ser recusados (ex.: vários kits de 10 L na Total
+  Express).
 - Somente cotação: registro de coleta e rastreio não estão incluídos.
 - Textos em português.
 - Em multisite, desinstalar limpa só o site atual.
